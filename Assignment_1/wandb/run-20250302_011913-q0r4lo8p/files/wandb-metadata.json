@@ -1,0 +1,38 @@
+{
+  "os":  "Linux-5.15.0-130-generic-x86_64-with-glibc2.35",
+  "python":  "CPython 3.9.21",
+  "startedAt":  "2025-03-01T19:49:13.057604Z",
+  "program":  "/home/ic41223/DA6401/Assignment_1/Question_1.ipynb",
+  "codePath":  "Question_1.ipynb",
+  "email":  "harshayelchuri2000@gmail.com",
+  "root":  "/home/ic41223/DA6401/Assignment_1",
+  "host":  "e2e-70-32",
+  "executable":  "/home/ic41223/miniconda3/envs/DA6401/bin/python",
+  "codePathLocal":  "Question_1.ipynb",
+  "cpu_count":  8,
+  "cpu_count_logical":  8,
+  "gpu":  "Tesla V100-PCIE-32GB",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "872059330560",
+      "used":  "865374851072"
+    }
+  },
+  "memory":  {
+    "total":  "123640074240"
+  },
+  "cpu":  {
+    "count":  8,
+    "countLogical":  8
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "Tesla V100-PCIE-32GB",
+      "memoryTotal":  "34359738368",
+      "cudaCores":  5120,
+      "architecture":  "Volta"
+    }
+  ],
+  "cudaVersion":  "12.4"
+}
