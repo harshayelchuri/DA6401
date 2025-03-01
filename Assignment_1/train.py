@@ -29,6 +29,37 @@ def log_sample_images(images, labels, name):
     })
 
 
+class NeuralNetwork:
+    def __init__(self, args):
+        self.args = args
+        weights = [np.random.rand(28*28, args.hidden_size)]
+        biases = [np.random.rand(args.hidden_size)]   
+        for i in range(args.num_layers-1):
+            weights.append(np.random.rand(args.hidden_size,args.hidden_size))
+            biases.append(np.random.rand(args.hidden_size))
+        weights.append(np.random.rand(args.hidden_size,10))
+        biases.append(np.random.rand(10))
+        self.weights = weights
+        self.biases = biases
+
+
+    def softmax(self,x):
+        return np.exp(x) / np.sum(np.exp(x), axis=0)
+
+    def forward(self, x):
+        for i in range(self.args.num_layers):
+            x = np.dot(x, self.weights[i]) + self.biases[i]
+            if self.args.activation == "sigmoid":
+                x = 1/(1+np.exp(-x))
+            elif self.args.activation == "tanh":
+                x = np.tanh(x)
+            elif self.args.activation == "ReLU":
+                x = np.maximum(0,x)
+        x = np.dot(x, self.weights[-1]) + self.biases[-1]
+        return self.softmax(x)
+
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-wp", "--wandb_project", type=str, default="Assignment1")
@@ -54,7 +85,13 @@ def main():
     wandb.init(project=args.wandb_project, entity=args.wandb_entity)
 
     (x_train, y_train), (x_test, y_test) = get_dataset(args.dataset)
-    log_sample_images(x_train, y_train, args.dataset)
+    x_train, x_test = x_train / 255.0, x_test / 255.0
+    x_train, x_test = x_train.reshape(x_train.shape[0], 28*28), x_test.reshape(x_test.shape[0], 28*28)
+    # log_sample_images(x_train, y_train, args.dataset)
+
+    model = NeuralNetwork(args)
+    print(x_train[0].shape, np.resize(x_train[0],(1,28*28)).shape)
+    print(model.forward(x_train[0]))
 
     
     wandb.finish()
