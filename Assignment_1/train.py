@@ -203,24 +203,90 @@ def main():
         print(f'epoch: {epoch}')
         temp_gradients_w = [np.zeros_like(w) for w in model.weights]
         temp_gradients_b = [np.zeros_like(b) for b in model.biases]
+        history_gradients_1_w = [np.zeros_like(w) for w in model.weights]
+        history_gradients_1_b = [np.zeros_like(b) for b in model.biases]
+        history_gradients_2_w = [np.zeros_like(w) for w in model.weights]
+        history_gradients_2_b = [np.zeros_like(b) for b in model.biases]
+        t=0
         epoch_loss = 0  
         correct_predictions = 0  
         for i in range(0, len(x_train)):
-            y_pred = model.forward(x_train[i])
-            loss = model.loss(y_train[i], y_pred)
-            epoch_loss += loss
-            if np.argmax(y_pred) == np.argmax(y_train[i]):
-                correct_predictions += 1
-            model.backward(y_train[i], y_pred)
-            for j in range(len(model.weights)): 
-                temp_gradients_w[j] += model.gradients_w[j]
-                temp_gradients_b[j] += model.gradients_b[j]
-            if (i + 1) % args.batch_size == 0 or (i + 1) == len(x_train):
+            if args.optimizer == "sgd" or args.optimizer == "momentum" or args.optimizer == "RMSprop" or args.optimizer == "adam" or args.optimizer == "nadam": 
+                y_pred = model.forward(x_train[i])
+                loss = model.loss(y_train[i], y_pred)
+                epoch_loss += loss
+                if np.argmax(y_pred) == np.argmax(y_train[i]):
+                    correct_predictions += 1
+                model.backward(y_train[i], y_pred)
                 for j in range(len(model.weights)): 
-                    model.weights[j] -= args.learning_rate * temp_gradients_w[j] / args.batch_size
-                    model.biases[j] -= args.learning_rate * temp_gradients_b[j] / args.batch_size
-                temp_gradients_w = [np.zeros_like(w) for w in model.weights]
-                temp_gradients_b = [np.zeros_like(b) for b in model.biases]
+                    temp_gradients_w[j] += model.gradients_w[j]
+                    temp_gradients_b[j] += model.gradients_b[j]
+                if (i + 1) % args.batch_size == 0 or (i + 1) == len(x_train):
+                    t+=1
+                    for j in range(len(model.weights)): 
+                        if args.optimizer == "sgd":
+                            model.weights[j] -= args.learning_rate * temp_gradients_w[j] / args.batch_size
+                            model.biases[j] -= args.learning_rate * temp_gradients_b[j] / args.batch_size
+                        if args.optimizer == "momentum":
+                            history_gradients_1_w[j] = args.momentum * history_gradients_1_w[j] + (temp_gradients_w[j] / args.batch_size)
+                            history_gradients_1_b[j] = args.momentum * history_gradients_1_b[j] + (temp_gradients_b[j] / args.batch_size)   
+                            model.weights[j] -= args.learning_rate * history_gradients_1_w[j]  
+                            model.biases[j] -= args.learning_rate * history_gradients_1_b[j]
+                        if args.optimizer == "RMSprop":
+                            history_gradients_1_w[j] = args.beta * history_gradients_1_w[j] + (1 - args.beta) * np.square(temp_gradients_w[j] / args.batch_size)
+                            history_gradients_1_b[j] = args.beta * history_gradients_1_b[j] + (1 - args.beta) * np.square(temp_gradients_b[j] / args.batch_size)
+                            model.weights[j] -= args.learning_rate * (temp_gradients_w[j] / args.batch_size) / (np.sqrt(history_gradients_1_w[j]) + args.epsilon)
+                            model.biases[j] -= args.learning_rate * (temp_gradients_b[j] / args.batch_size) / (np.sqrt(history_gradients_1_b[j]) + args.epsilon)
+                        if args.optimizer == "adam":
+                            history_gradients_1_w[j] = args.beta1 * history_gradients_1_w[j] + (1 - args.beta1) * (temp_gradients_w[j] / args.batch_size)
+                            history_gradients_2_w[j] = args.beta2 * history_gradients_2_w[j] + (1 - args.beta2) * np.square(temp_gradients_w[j] / args.batch_size)
+                            history_gradients_1_b[j] = args.beta1 * history_gradients_1_b[j] + (1 - args.beta1) * (temp_gradients_b[j] / args.batch_size)
+                            history_gradients_2_b[j] = args.beta2 * history_gradients_2_b[j] + (1 - args.beta2) * np.square(temp_gradients_b[j] / args.batch_size)
+                            m_hat_w = history_gradients_1_w[j] / (1 - np.power(args.beta1, t))
+                            v_hat_w = history_gradients_2_w[j] / (1 - np.power(args.beta2, t))
+                            m_hat_b = history_gradients_1_b[j] / (1 - np.power(args.beta1, t))
+                            v_hat_b = history_gradients_2_b[j] / (1 - np.power(args.beta2, t))
+                            model.weights[j] -= args.learning_rate * (m_hat_w / (np.sqrt(v_hat_w) + args.epsilon))
+                            model.biases[j] -= args.learning_rate * (m_hat_b / (np.sqrt(v_hat_b) + args.epsilon))
+                        if args.optimizer == "nadam":
+                            history_gradients_1_w[j] = args.beta1 * history_gradients_1_w[j] + (1 - args.beta1) * (temp_gradients_w[j] / args.batch_size)
+                            history_gradients_2_w[j] = args.beta2 * history_gradients_2_w[j] + (1 - args.beta2) * np.square(temp_gradients_w[j] / args.batch_size)
+                            history_gradients_1_b[j] = args.beta1 * history_gradients_1_b[j] + (1 - args.beta1) * (temp_gradients_b[j] / args.batch_size)
+                            history_gradients_2_b[j] = args.beta2 * history_gradients_2_b[j] + (1 - args.beta2) * np.square(temp_gradients_b[j] / args.batch_size)
+                            m_hat_w = history_gradients_1_w[j] / (1 - np.power(args.beta1, t))
+                            v_hat_w = history_gradients_2_w[j] / (1 - np.power(args.beta2, t))
+                            m_hat_b = history_gradients_1_b[j] / (1 - np.power(args.beta1, t))
+                            v_hat_b = history_gradients_2_b[j] / (1 - np.power(args.beta2, t))
+                            model.weights[j] -= args.learning_rate / (np.sqrt(v_hat_w) + args.epsilon) * (args.beta1 * m_hat_w + ((1 - args.beta1) / (1 - np.power(args.beta1, t))) * (temp_gradients_w[j] / args.batch_size)) 
+                            model.biases[j] -= args.learning_rate / (np.sqrt(v_hat_b) + args.epsilon) * (args.beta1 * m_hat_b + ((1 - args.beta1) / (1 - np.power(args.beta1, t))) * (temp_gradients_b[j] / args.batch_size))
+                    temp_gradients_w = [np.zeros_like(w) for w in model.weights]
+                    temp_gradients_b = [np.zeros_like(b) for b in model.biases]
+            if args.optimizer == "nag":
+                old_weights = [w.copy() for w in model.weights]
+                old_biases = [b.copy() for b in model.biases]
+                for j in range(len(model.weights)):
+                    model.weights[j] -= args.momentum * history_gradients_1_w[j]
+                    model.biases[j] -= args.momentum * history_gradients_1_b[j]
+                y_pred = model.forward(x_train[i])
+                loss = model.loss(y_train[i], y_pred)
+                epoch_loss += loss
+                if np.argmax(y_pred) == np.argmax(y_train[i]):
+                    correct_predictions += 1
+                model.backward(y_train[i], y_pred)
+                model.weights = old_weights
+                model.biases = old_biases
+                for j in range(len(model.weights)):
+                    temp_gradients_w[j] += model.gradients_w[j]
+                    temp_gradients_b[j] += model.gradients_b[j]
+                if (i + 1) % args.batch_size == 0 or (i + 1) == len(x_train):
+                    for j in range(len(model.weights)):
+                        history_gradients_1_w[j] = args.momentum * history_gradients_1_w[j] + (temp_gradients_w[j] / args.batch_size)
+                        history_gradients_1_b[j] = args.momentum * history_gradients_1_b[j] + (temp_gradients_b[j] / args.batch_size)
+                        model.weights[j] -= args.learning_rate * history_gradients_1_w[j]
+                        model.biases[j] -= args.learning_rate * history_gradients_1_b[j]
+                    temp_gradients_w = [np.zeros_like(w) for w in model.weights]
+                    temp_gradients_b = [np.zeros_like(b) for b in model.biases]
+
         avg_epoch_loss = epoch_loss / len(x_train)
         train_accuracy  = correct_predictions / len(x_train)
 
