@@ -1,11 +1,12 @@
 # DA6401 Assignment 1
-This repository contains the code for Assignment 1 of the DA6401 course. The project includes four Python files, each with a specific purpose. Below are the descriptions and instructions on how to run each file.
-
-
+This repository contains the code for Assignment 1 of the DA6401 course. 
 
 **The wandb report is available here: https://api.wandb.ai/links/harshayelchuri-indian-institute-of-technology-madras/7vmjba26**
 
 **The github repository is found here: https://github.com/harshayelchuri/DA6401/tree/main**
+
+
+The project includes four Python files, each with a specific purpose. Below are the descriptions and instructions on how to run each file.
 
 ## **display_images_Question_1.py**
 **Description:** This file contains the code for displaying and logging sample images from the dataset to wandb.
