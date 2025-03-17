@@ -3,10 +3,6 @@ import wandb
 import tensorflow as tf
 from keras.datasets import mnist, fashion_mnist
 import numpy as np
-import json
-
-# from sklearn.metrics import confusion_matrix
-
 
 def get_dataset(name):
     datasets = {
@@ -52,10 +48,22 @@ def preprocess_data(args):
 
 def train(args, x_train, y_train, x_val, y_val, x_test, y_test):
     wandb.init(project=args.wandb_project, entity=args.wandb_entity)
+    config = wandb.config
 
-    run_name = f"train"
+    run_name = f"mse_e_{config.epochs}_hl_{config.hidden_layers}_hs_{config.hidden_size}_wd_{config.weight_decay}_lr_{config.learning_rate}_o_{config.optimizer}_bs_{config.batch_size}_wi_{config.weight_init}_a_{config.activation}_l_{config.loss}"
 
     wandb.run.name = run_name
+
+    args.epochs = config.epochs
+    args.num_layers = config.hidden_layers
+    args.hidden_size = config.hidden_size
+    args.weight_decay = config.weight_decay
+    args.learning_rate = config.learning_rate
+    args.optimizer = config.optimizer
+    args.batch_size = config.batch_size
+    args.weight_init = config.weight_init
+    args.activation = config.activation
+    args.loss = config.loss
 
     model = NeuralNetwork(args)
     history_gradients_1_w = [np.zeros_like(w) for w in model.weights]
@@ -168,7 +176,7 @@ def train(args, x_train, y_train, x_val, y_val, x_test, y_test):
             "val_accuracy": val_accuracy,
         })
     
-    
+
 class NeuralNetwork:
     def __init__(self, args):
         self.args = args
@@ -312,28 +320,49 @@ def main():
     parser.add_argument("-we", "--wandb_entity", type=str, default="harshayelchuri-indian-institute-of-technology-madras")
     parser.add_argument("-d", "--dataset", type=str, choices=["mnist", "fashion_mnist"], default="fashion_mnist")
     parser.add_argument("-e", "--epochs", type=int, default=10)
-    parser.add_argument("-b", "--batch_size", type=int, default=64)
+    parser.add_argument("-b", "--batch_size", type=int, default=4)
     parser.add_argument("-l", "--loss", type=str, choices=["mean_squared_error", "cross_entropy"], default="cross_entropy")
-    parser.add_argument("-o", "--optimizer", type=str, choices=["sgd", "momentum", "nag", "rmsprop", "adam", "nadam"], default="nadam")
-    parser.add_argument("-lr", "--learning_rate", type=float, default=0.001)
+    parser.add_argument("-o", "--optimizer", type=str, choices=["sgd", "momentum", "nag", "rmsprop", "adam", "nadam"], default="sgd")
+    parser.add_argument("-lr", "--learning_rate", type=float, default=0.1)
     parser.add_argument("-m", "--momentum", type=float, default=0.5)
     parser.add_argument("-beta", "--beta", type=float, default=0.5)
     parser.add_argument("-beta1", "--beta1", type=float, default=0.5)
     parser.add_argument("-beta2", "--beta2", type=float, default=0.5)
     parser.add_argument("-eps", "--epsilon", type=float, default=0.000001)
     parser.add_argument("-w_d", "--weight_decay", type=float, default=0.0)
-    parser.add_argument("-w_i", "--weight_init", type=str, choices=["random", "Xavier"], default="Xavier")
-    parser.add_argument("-nhl", "--num_layers", type=int, default=3)
-    parser.add_argument("-sz", "--hidden_size", type=int, default=128)
-    parser.add_argument("-a", "--activation", type=str, choices=["identity", "sigmoid", "tanh", "ReLU"], default="tanh")
+    parser.add_argument("-w_i", "--weight_init", type=str, choices=["random", "Xavier"], default="random")
+    parser.add_argument("-nhl", "--num_layers", type=int, default=1)
+    parser.add_argument("-sz", "--hidden_size", type=int, default=32)
+    parser.add_argument("-a", "--activation", type=str, choices=["identity", "sigmoid", "tanh", "ReLU"], default="sigmoid")
     args = parser.parse_args()
 
-    x_train, y_train, x_val, y_val, x_test, y_test = preprocess_data(args)
-    train(args, x_train, y_train, x_val, y_val, x_test, y_test)
+    # x_train, y_train, x_val, y_val, x_test, y_test = preprocess_data(args)
+
+
+
+
+    sweep_config = {
+        'method': 'bayes',  
+        'metric': {'name': 'val_accuracy', 'goal': 'maximize'}, 
+        'parameters': {
+            'epochs': {'values': [5, 10]},
+            'hidden_layers': {'values': [3,4]},
+            'hidden_size': {'values': [64, 128]},
+            'weight_decay': {'values': [0, 0.0005]},
+            'learning_rate': {'values': [1e-3, 1e-4]},
+            'optimizer': {'values': ['sgd', 'momentum', 'nesterov', 'rmsprop', 'adam', 'nadam']},
+            'batch_size': {'values': [64]},
+            'weight_init': {'values': ['random', 'Xavier']},
+            'activation': {'values': ['sigmoid', 'tanh', 'ReLU']},
+            'loss': {'values': ['mean_squared_error']},
+        }
+    }
 
 
     # log_sample_images(x_train, y_train, args.dataset)
 
+    sweep_id = wandb.sweep(sweep_config, project=args.wandb_project, entity=args.wandb_entity)
+    wandb.agent(sweep_id, function= lambda: train(args, *preprocess_data(args)), count=50)
     
     
     wandb.finish()

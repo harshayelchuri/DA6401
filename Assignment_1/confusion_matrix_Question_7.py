@@ -53,7 +53,7 @@ def preprocess_data(args):
 def train(args, x_train, y_train, x_val, y_val, x_test, y_test):
     wandb.init(project=args.wandb_project, entity=args.wandb_entity)
 
-    run_name = f"train"
+    run_name = f"confusion_matrix"
 
     wandb.run.name = run_name
 
@@ -168,7 +168,52 @@ def train(args, x_train, y_train, x_val, y_val, x_test, y_test):
             "val_accuracy": val_accuracy,
         })
     
+
+    y_preditction_list= []
+    y_true_list = []
+    y_prob_list = []
+    dataset_class_names = {
+        "mnist": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+        "fashion_mnist": ["T-shirt/top", "Trouser", "Pullover", "Dress", "Coat", "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot"],
+    }
     
+    #### plotting confusion matrix ###
+    test_correct_predictions = 0
+    for i in range(len(x_test)):
+        y_pred = model.forward(x_test[i])
+        if np.argmax(y_pred) == np.argmax(y_test[i]):
+                test_correct_predictions += 1
+        y_prob_list.append(y_pred)
+        y_preditction_list.append(np.argmax(y_pred))
+        y_true_list.append(np.argmax(y_test[i]))
+
+    # cm = confusion_matrix(y_true_list, y_preditction_list)
+    class_names = dataset_class_names[args.dataset]
+    test_accuracy = test_correct_predictions / len(x_test)
+    print("test_accuracy: ", test_accuracy)
+    my_dict = {'y_prob_list':y_prob_list, 'y_preditction_list':y_preditction_list, 'y_true_list':y_true_list}
+
+
+
+    # Log the confusion matrix
+    wandb.log({
+        "confusion_matrix": wandb.plot.confusion_matrix(
+            preds=y_preditction_list,
+            y_true=y_true_list,
+            class_names=class_names
+        )
+    })
+    wandb.log({
+        "confusion_matrix_prob": wandb.plot.confusion_matrix(
+            probs=y_prob_list,
+            y_true=y_true_list,
+            class_names=class_names
+        )
+    })
+
+    # with open('my_dict.json', 'w') as f:
+    #     json.dump(my_dict, f, indent=4)
+
 class NeuralNetwork:
     def __init__(self, args):
         self.args = args
